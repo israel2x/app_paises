@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:ffi';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EcuadorScreen extends StatefulWidget {
   const EcuadorScreen({super.key});
@@ -13,6 +15,8 @@ class EcuadorScreen extends StatefulWidget {
 class _EcuadorScreenState extends State<EcuadorScreen> {
   String ciudad_name = "";
   String link_bandera = "";
+  String link_escudo = "";
+  String poblacion = "";
 
   @override
   void initState() {
@@ -21,20 +25,50 @@ class _EcuadorScreenState extends State<EcuadorScreen> {
   }
 
   Future<void> getData() async {
-    final url = Uri.parse("https://restcountries.com/v3.1/name/ecuador");
+    try {
+      final url = Uri.parse("https://restcountries.com/v3.1/name/ecuador");
+      final response = await http.get(url);
 
-    final response = await http.get(url);
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      //print(jsonDecode(response.body));
+        // Verificar que data no esté vacío
+        if (data.isNotEmpty) {
+          var countryData = data[0];
 
-      var data = jsonDecode(response.body);
+          // Extraer datos con verificación de null
+          var flag = countryData['flags']?['png'] ?? '';
+          var escudo = countryData['coatOfArms']?['png'] ?? '';
+          var f = countryData['flag'] ?? '';
+          var p = countryData['population'] ?? 0;
 
-      var flag = data[0]['flags']['png'];
-      print(flag);
+          print('Flag: $flag');
+          print('Escudo: $escudo');
+          print('Emoji: $f');
+          print('Población: $p');
 
+          setState(() {
+            link_bandera = flag;
+            link_escudo = escudo;
+            poblacion = p.toString();
+          });
+        }
+      } else {
+        // Manejar error de respuesta
+        print('Error: ${response.statusCode}');
+        setState(() {
+          link_bandera = '';
+          link_escudo = '';
+          poblacion = "";
+        });
+      }
+    } catch (e) {
+      // Manejar errores de red o parsing
+      print('Error al obtener datos: $e');
       setState(() {
-        link_bandera = flag;
+        link_bandera = '';
+        link_escudo = '';
+        poblacion = "";
       });
     }
   }
@@ -46,7 +80,13 @@ class _EcuadorScreenState extends State<EcuadorScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text("Hola Ecuador"),
+          Text(poblacion),
           Image.network(link_bandera),
+          Image.network(
+            link_escudo,
+            width: 150,
+            height: 200,
+          ),
           TextButton(
               onPressed: () {
                 getData();
